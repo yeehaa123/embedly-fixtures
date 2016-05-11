@@ -1,0 +1,311 @@
+{
+    "provider_url": "http://tutorialzine.com",
+    "authors": [],
+    "provider_display": "tutorialzine.com",
+    "related": [
+        {
+            "description": "Who wears a taupe blazer? interesting, wonderful, or disturbing way. A computer is a clock with benefits. They all work the same, doing second-grade math, one step at a time: Tick, take a number and put it in box one. Tick, take another number, put it in box two.",
+            "title": "What Is Code? If You Don't Know, You Need to Read This",
+            "url": "http://www.bloomberg.com/graphics/2015-paul-ford-what-is-code/",
+            "thumbnail_width": 1160,
+            "score": 0.5414041877,
+            "thumbnail_height": 872,
+            "thumbnail_url": "http://www.bloomberg.com/graphics/2015-paul-ford-what-is-code/images/promo.jpg"
+        }
+    ],
+    "favicon_url": "http://tutorialzine.com/favicon.png",
+    "keywords": [
+        {
+            "score": 129,
+            "name": "react"
+        },
+        {
+            "score": 63,
+            "name": "components"
+        },
+        {
+            "score": 53,
+            "name": "javascript"
+        },
+        {
+            "score": 53,
+            "name": "angular"
+        },
+        {
+            "score": 51,
+            "name": "example"
+        },
+        {
+            "score": 47,
+            "name": "framework"
+        },
+        {
+            "score": 40,
+            "name": "code"
+        },
+        {
+            "score": 35,
+            "name": "dom"
+        },
+        {
+            "score": 31,
+            "name": "uses"
+        },
+        {
+            "score": 27,
+            "name": "html"
+        }
+    ],
+    "app_links": [],
+    "original_url": "http://tutorialzine.com/2014/07/5-practical-examples-for-learning-facebooks-react-framework/",
+    "media": {},
+    "content": "<div>\n<h2>5 Practical Examples For Learning The React Framework</h2>\n<p> Martin Angelov </p>\n<p>You've probably heard about the popular JavaScript framework by Facebook - <a href=\"http://facebook.github.io/react/\">React</a>. It is used by many popular websites, including Facebook itself and Instagram. In this article you will find 5 practical examples that have been built with React, and which will give you a head start with the framework.</p>\n<blockquote>\n<p><b>Update (Feb 18th 2016):</b> We've made the examples work with React 0.14.7</p>\n</blockquote>\n<h3>What is special about React?</h3>\n<p>React is built around the concept of components. This is in contrast to frameworks like Angular and Ember, which use two-way data bindings to update the HTML of the page. In my opinion React is easier to learn than Angular and Ember - it is much smaller and plays nicely with jQuery and other frameworks. It is also extremely fast, because it uses a virtual DOM, and syncs only the changed parts with the underlying page (accessing the DOM is still the slowest part of a modern web application, which is why the framework gets a performance boost by optimizing it).</p>\n<p>However, the flip side is that it takes a bit more code in React to achieve the same things that can be easily done with a data binding, as you can see from the examples below. For a comparison, see <a href=\"http://tutorialzine.com/2013/08/learn-angularjs-5-examples/\">our article about Angular</a>.</p>\n<h3>How to use it?</h3>\n<p>To use React, you need to include a single JavaScript file in your page. Facebook kindly provides a CDN that you can directly link to:</p>\n<pre><script src=\"http://fb.me/react-0.10.0.min.js\"></script>\r\n</pre>\n<p>This gives you access to the global <strong>React</strong> object, which holds a number of useful methods, some of which you can see in these examples. The recommended way to write React web apps is by using a language called <strong>JSX</strong>. This is a slightly enhanced version of JavaScript that allows you to initialize React components by using an HTML-like syntax directly in your code. It is compiled down to JavaScript before being interpreted by the browser. JSX is completely optional - you can use regular JavaScript if you prefer.</p>\n<p>But enough talk, let's see some code!</p>\n<h3>1. Timer</h3>\n<p>As I mentioned, the building blocks of react apps are components. They are created by calling <code>React.createClass()</code> with an object of options and methods. Each component has state (an object with data) and each is in charge of their own rendering - the <code>render()</code> method is called whenever the state changes. Here is an example for building a simple timer:</p>\n<small>(Click the Result link to see the example it in action)</small> <p>You can embed any JavaScript expression within braces {} when creating a component. In this example, we pass a start date, that will be used in every tick() function call to calculate the elapsed seconds.</p>\n<h3>2. Navigation menu</h3>\n<p>Let's see how we can handle click events in React by building a navigation menu:</p>\n<p>You've probably noticed from the code of these examples that we use attributes like <em>className</em> that don't actually exist in HTML. This is because when you return a new <p> element you don't return HTML, but an instance of the component <code>React.DOM.p</code>. You can read more about this  <a href=\"http://facebook.github.io/react/docs/jsx-in-depth.html\">here</a>.</p>\n<h3>3. Real-time search</h3>\n<p>We've learned time and time again that people hate to wait. Here is how you can use React to build a real-time search experience. (For a comparison, see our version <a href=\"http://tutorialzine.com/2013/08/learn-angularjs-5-examples/#4-instant-search\">with AngularJS</a>).</p>\n<p>This example also demonstrates another important concept in React - updates of your controller's state should affect the HTML, not the other way around. In this instance, once you've set the value of the text box, it will stay the same, ignoring user's key presses, unless you update it in the <strong>onChange</strong> function (you can change this behavior, but it is the recommended way of doing things).</p>\n<h3>4. Order form</h3>\n<p>The real power of React comes when you combine multiple components. This allows you to structure your code better and to introduce a separation of concerns. It will also make your code reusable across different parts of your web application. Here is an example of an order form that helps clients plan their budgets (see the <a href=\"http://tutorialzine.com/2013/08/learn-angularjs-5-examples/#4-instant-search\">Angular version here</a>):</p>\n<p>The first issue that arises when combining multiple components is how to make them communicate. One way is to pass the data that you need in attributes while initializing them. This only works from parent to child components. For communication in the other direction, you can pass one of the parent component's methods as an attribute to the child. The child can then call this method, and notify the parent of events. You can read more about this  <a href=\"http://facebook.github.io/react/tips/communicate-between-components.html\">here</a>.</p>\n<h3>5. Image app with AJAX</h3>\n<p>This example will demonstrate how you can combine react with jQuery, and how to load results via AJAX. Whereas frameworks like Angular have their custom approaches when doing AJAX, React lets you use whatever other libraries you are comfortable with (see the <a href=\"http://tutorialzine.com/2013/08/learn-angularjs-5-examples/#5-switchable-grid\">Angular version here</a>).</p>\n<p>Notice that our example uses the same Picture component when rendering the picture list and the favorite list. This reuse is one of the benefits to organizing your code into components.</p>\n<h3>Test what you've learned</h3>\n<h3>Where to next?</h3>\n<p>React allows you to give clean structure to your application and promote code reuse. And thanks to its powerful virtual dom, the framework can speed up complex interfaces. React is suitable for rendering on the server side as well as the client, and makes it possible to build isomorphic apps that transition seamlessly between the client and the server.</p>\n<p>But there is still more to learn about react. I suggest that you start here:</p>\n<img src=\"http://1.gravatar.com/avatar/18635cef09f45858ce6b07c8612c9f5b?s=60&amp;d=mm&amp;r=g\"><h5>by <strong>Martin Angelov</strong>\n</h5>\n<p>Martin is a web developer with an eye for design from Bulgaria. He founded Tutorialzine in 2009 and it still is his favorite side project.</p>\n</div>",
+    "entities": [
+        {
+            "count": 3,
+            "name": "AJAX"
+        },
+        {
+            "count": 2,
+            "name": "JSX"
+        },
+        {
+            "count": 1,
+            "name": "Martin Angelov"
+        },
+        {
+            "count": 1,
+            "name": "Instagram"
+        },
+        {
+            "count": 1,
+            "name": "DOM"
+        },
+        {
+            "count": 1,
+            "name": "Martin Angelov Martin"
+        },
+        {
+            "count": 1,
+            "name": "Bulgaria"
+        }
+    ],
+    "provider_name": "Tutorialzine",
+    "type": "html",
+    "description": "Martin Angelov You've probably heard about the popular JavaScript framework by Facebook - React. It is used by many popular websites, including Facebook itself and Instagram. In this article you will find 5 practical examples that have been built with React, and which will give you a head start with the framework.",
+    "embeds": [],
+    "images": [
+        {
+            "width": 950,
+            "url": "http://cdn.tutorialzine.com/wp-content/uploads/2014/07/5-practical-examples-for-learning-react.jpg",
+            "height": 490,
+            "caption": null,
+            "colors": [
+                {
+                    "color": [
+                        30,
+                        33,
+                        34
+                    ],
+                    "weight": 0.9636230469
+                },
+                {
+                    "color": [
+                        89,
+                        206,
+                        237
+                    ],
+                    "weight": 0.0295410156
+                },
+                {
+                    "color": [
+                        249,
+                        249,
+                        249
+                    ],
+                    "weight": 0.0068359375
+                }
+            ],
+            "entropy": 0.503039788436,
+            "size": 38152
+        },
+        {
+            "width": 560,
+            "url": "http://cdn.tutorialzine.com/wp-content/uploads/2014/07/3.png",
+            "height": 410,
+            "caption": null,
+            "colors": [
+                {
+                    "color": [
+                        246,
+                        250,
+                        251
+                    ],
+                    "weight": 0.9704589844
+                },
+                {
+                    "color": [
+                        107,
+                        142,
+                        176
+                    ],
+                    "weight": 0.0180664062
+                },
+                {
+                    "color": [
+                        187,
+                        161,
+                        145
+                    ],
+                    "weight": 0.0078125
+                },
+                {
+                    "color": [
+                        201,
+                        154,
+                        53
+                    ],
+                    "weight": 0.001953125
+                },
+                {
+                    "color": [
+                        153,
+                        200,
+                        234
+                    ],
+                    "weight": 0.0017089844000000001
+                }
+            ],
+            "entropy": 0.8070968196,
+            "size": 11164
+        },
+        {
+            "width": 560,
+            "url": "http://cdn.tutorialzine.com/wp-content/uploads/2014/07/1.png",
+            "height": 410,
+            "caption": null,
+            "colors": [
+                {
+                    "color": [
+                        248,
+                        251,
+                        250
+                    ],
+                    "weight": 0.90234375
+                },
+                {
+                    "color": [
+                        211,
+                        229,
+                        235
+                    ],
+                    "weight": 0.09765625
+                }
+            ],
+            "entropy": 0.4420819045,
+            "size": 5808
+        },
+        {
+            "width": 560,
+            "url": "http://cdn.tutorialzine.com/wp-content/uploads/2014/07/2.png",
+            "height": 410,
+            "caption": null,
+            "colors": [
+                {
+                    "color": [
+                        246,
+                        250,
+                        251
+                    ],
+                    "weight": 0.9938964844
+                },
+                {
+                    "color": [
+                        182,
+                        158,
+                        153
+                    ],
+                    "weight": 0.0021972656
+                },
+                {
+                    "color": [
+                        71,
+                        150,
+                        215
+                    ],
+                    "weight": 0.001953125
+                },
+                {
+                    "color": [
+                        110,
+                        126,
+                        143
+                    ],
+                    "weight": 0.001953125
+                }
+            ],
+            "entropy": 0.4036781726,
+            "size": 4497
+        },
+        {
+            "width": 560,
+            "url": "http://cdn.tutorialzine.com/wp-content/uploads/2014/07/4.png",
+            "height": 410,
+            "caption": null,
+            "colors": [
+                {
+                    "color": [
+                        248,
+                        251,
+                        250
+                    ],
+                    "weight": 0.9060058594
+                },
+                {
+                    "color": [
+                        216,
+                        232,
+                        238
+                    ],
+                    "weight": 0.0939941406
+                }
+            ],
+            "entropy": 0.40899608460000003,
+            "size": 5452
+        }
+    ],
+    "safe": true,
+    "offset": null,
+    "cache_age": 76902,
+    "lead": null,
+    "language": "English",
+    "url": "http://tutorialzine.com/2014/07/5-practical-examples-for-learning-facebooks-react-framework/",
+    "title": "5 Practical Examples For Learning The React Framework",
+    "favicon_colors": [
+        {
+            "color": [
+                245,
+                215,
+                77
+            ],
+            "weight": 0.1586914062
+        },
+        {
+            "color": [
+                138,
+                140,
+                139
+            ],
+            "weight": 0.0546875
+        },
+        {
+            "color": [
+                252,
+                252,
+                252
+            ],
+            "weight": 0.036621093800000004
+        }
+    ],
+    "published": 1404691200000
+}
