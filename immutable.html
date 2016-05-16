@@ -1,0 +1,333 @@
+
+  <div>
+    \n
+    <p>A <a href=
+    "/&quot;http://jlongster.com/The-Seasonal-Blog-Redux/&quot;">little while
+    ago</a> I briefly talked about my latest blog rewrite and promised to go
+    more in-depth on specific things I learned. Today I'm going to talk about
+    immutable data structures in JavaScript, specifically two libraries
+    <a href="/&quot;https://github.com/facebook/immutable-js/&quot;">immutable.js</a>
+    and <a href=
+    "/&quot;https://github.com/rtfeldman/seamless-immutable/&quot;">seamless-immutable</a>.
+    There are other libraries, but the choice is conceptually between truly
+    persistent data structures or copying native JavaScript objects, and
+    comparing these two highlights the tradeoffs, no matter what specific
+    library you choose <a href=
+    "/&quot;http://jlongster.com/Using-Immutable-Data-Structures-in-JavaScript#footnote1/&quot;">
+    [1]</a>. I'll also talk a little about <a href=
+    "/&quot;https://github.com/cognitect/transit-js/&quot;">transit-js</a>,
+    which is a great way to serialize anything.</p>\n
+    <p>Very little of this applies specifically to <a href=
+    "/&quot;https://github.com/rackt/redux/&quot;">Redux</a>. I talk about
+    using immutable data structures generally, but provide pointers for using
+    it specifically in Redux. In Redux, you have a single app state object and
+    update it immutably, and there are various ways to achieve this, each with
+    tradeoffs. I explore this below.</p>\n
+    <p>One thing to think about with Redux is how you combine <a href=
+    "/&quot;http://rackt.github.io/redux/docs/basics/Reducers.html/&quot;">reducers</a>
+    to form the single app state atom; the default method that Redux provides (
+    <code>combineReducers</code>) assumes that you are combining multiple
+    values into a single JavaScript object. If you really want to combine them
+    into a single Immutable.js object, for example, you would need to write
+    your own <code>combineReducers</code> that does so. This might be necessary
+    if you need to serialize your app state and you assume that it's entirely
+    made up of Immutable.js objects.</p>\n
+    <p>Most of this applies to using immutable objects in JavaScript in
+    general. It's a bit awkward sometimes because you're fighting the default
+    semantics, and it can feel like you're juggling types. However, depending
+    on your app and how you set things up, you can get a lot out of it.</p>\n
+    <p>Currently there is <a href=
+    "/&quot;https://github.com/sebmarkbage/ecmascript-immutable-data-structures/&quot;">
+    a proposal</a> for adding immutable data structures to JavaScript natively,
+    but it's not clear if it will work out yet. It would certainly remove most
+    problems with using them in JavaScript currently.</p>\n
+    <h2>Immutable.js</h2>\n
+    <p><a href=
+    "/&quot;https://github.com/facebook/immutable-js/&quot;">Immutable.js</a>
+    comes from Facebook and is one of the most popular implementations of
+    immutable data structures. It's the real deal; it implements fully
+    persistent data structures from scratch using advanced things like <a href=
+    "/&quot;https://en.wikipedia.org/wiki/Trie/&quot;">tries</a> to implement
+    structural sharing. All updates return new values, but internally
+    structures are shared to drastically reduce memory usage (and GC
+    thrashing). This means that if you append to a vector with 1000 elements,
+    it does <em>not</em> actually create a new vector 1001-elements long. Most
+    likely, internally only a few small objects are allocated.</p>\n
+    <p>The advancements of structural sharing data structures, greatly helped
+    with the <a href=
+    "/&quot;http://www.amazon.com/Purely-Functional-Structures-Chris-Okasaki/dp/0521663504/&quot;">
+    groundbreaking work</a> by Okasaki, has all but shattered the myth that
+    immutable values are too slow for Real Apps. In fact, it's surprising how
+    many apps can be made <em>faster</em> with them. Apps which read and copy
+    data structures heavily (to avoid being mutated from someone else) will
+    easily benefit from immutable data structures (simply copying a large array
+    once will diminish your performance wins from mutability).</p>\n
+    <p>Another example is how <a href=
+    "/&quot;https://github.com/clojure/clojurescript/&quot;">ClojureScript</a>
+    discovered that UIs are given a huge performance boost when backed by
+    immutable data structures. If you're mutating a UI, you commonly touch the
+    DOM more than necessary (because you don't know whether the value needs
+    updating or not). React will minimize DOM mutations, but you still need to
+    generate the virtual DOM for it to work with. When components are
+    immutable, you don't even have to generate the virtual DOM; a simple
+    <code>===</code> equality check tells you if it needs to update or
+    not.</p>\n
+    <p>Is it Too Good to Be True? You might wonder why we don't use immutable
+    data structures all the time with the benefits they provide. Well, some
+    languages do, like ClojureScript and Elm. It's harder in JavaScript because
+    they are not the default in the language, so we need to weigh the pros and
+    cons.</p>\n
+    <h3>Space and GC Efficiency</h3>\n
+    <p>I already explained why structural sharing makes immutable data
+    structures efficient. Nothing is going to beat mutating an array at an
+    index, but the overhead of immutability isn't large. If you need to avoid
+    mutations, they are going to beat copying objects hands-down.</p>\n
+    <p>In Redux, immutability is enforced. You won't see any updates on the
+    screen unless you return a new value. There are big wins because of this,
+    and if you want to avoid copying you might want to look at
+    Immutable.js.</p>\n
+    <h3>Reference &amp; Value Equality</h3>\n
+    <p>Let's say you internally stored a reference to an object, and called it
+    <code>obj1</code>. Later on, <code>obj2</code> comes down the pipe. If you
+    never mutate objects, and <code>obj1 === obj2</code> is true, you know
+    absolutely nothing has changed. In many architectures, like React, this
+    allows you easily do powerful optimizations.</p>\n
+    <p>That's called \"reference equality,\" where you can simply just compare
+    pointers. But there's also the concept of \"value equality,\" where you can
+    check if two objects are identical by doing <code>obj1.equals(obj2)</code>.
+    When things are immutable, you treat objects as just values.</p>\n
+    <p>In ClojureScript everything is a value, and even the default equality
+    operator performs the value equality check (as if <code>===</code> would).
+    If you actually wanted to compare instances you would use
+    <code>identical?</code>. The benefit of value equality with immutable data
+    structures is that it can usually do the checks more performantly than a
+    full recursive scan (if it shares structure it can skip that part).</p>\n
+    <p>So where does this come into play? I already explained how it makes
+    optimizing React trivial. Just implement <code>shouldComponentUpdate</code>
+    and check if the state is identical, and skip rendering if so.</p>\n
+    <p>I also discovered that while using <code>===</code> with Immutable.js
+    does not perform a value equality check (obviously, you can't override
+    JavaScript's semantics), Immutable.js uses value equality for identities of
+    objects. Anywhere that it wants to check if objects are the same, it uses
+    value equality.</p>\n
+    <p>For example, keys of a <code>Map</code> object are value equality
+    checked. This means I can store an object in a <code>Map</code>, and
+    retrieve it later just by supplying an object of the same shape:</p>\n
+    <pre>
+    <code>let map = Immutable.Map(); map = map.set(Immutable.Map({ x: 1, y: 2}), \"value\"); map.get(Immutable.Map({ x: 1, y: 2 })); </code></pre>\n
+    <p>This has a <em>lot</em> of really nice implications. For example, let's
+    say I have a function that takes a query object that specifies fields to
+    pull from a server:</p>\n
+    <pre>
+    <code>{ return fetchFromServer(serialize(query)); } runQuery(Immutable.Map({ select: 'users', filter: { name: 'James' } })); </code></pre>\n
+    <p>If I wanted to implement query caching, this is all I would have to
+    do:</p>\n
+    <pre>
+    <code>let queryCache = Immutable.Map(); { let cached = queryCache.get(query); if(cached) { return cached; } else { let results = fetchFromServer(serialize(query)); queryCache = queryCache.set(query, results); return results; } } </code></pre>\n
+    <p>I can treat the query object as a value, and store the results with it
+    as a key. Later on, if something runs the same query, I'll get back the
+    cached results even if the query object isn't the same instance.</p>\n
+    <p>There are all sorts of patterns that value equality simplifies. In fact,
+    I do the exact same technique when <a href=
+    "/&quot;https://github.com/jlongster/blog/blob/master/src/reducers/posts.js#L34/&quot;">
+    querying for posts</a>.</p>\n
+    <h3>JavaScript Interop</h3>\n
+    <p>The major downside to Immutable.js data structures is the reason that
+    they are able to implement all the above features: they are not normal
+    JavaScript data structures. An Immutable.js object is completely different
+    from a JavaScript object.</p>\n
+    <p>That means you must do <code>map.get(\"property\")</code> instead of
+    <code>map.property</code>, and <code>array.get(0)</code> instead of
+    <code>array[0]</code>. While Immutable.js goes to great lengths to provide
+    JavaScript-compatible APIs, even they are different ( <code>push</code>
+    must return a new array instead of mutating the existing instance). You can
+    feel it fighting the default mutation-heavy semantics of JavaScript.</p>\n
+    <p>The reason this makes things complicated is that unless you're really
+    hardcore and are starting a project from scratch, you can't use Immutable
+    objects everywhere. You don't really need to anyway for local objects of
+    small functions. Even if you create every single object/array/etc as
+    immutable, you're going to have to work with 3rd party libraries which use
+    normal JavaScript objects/arrays/etc.</p>\n
+    <p>The result is that you never know if you are working with a JavaScript
+    object or an Immutable one. This makes reasoning about functions harder.
+    While it's possible to be clear where you are using immutable objects, you
+    still pass them through the system into places where it's not clear.</p>\n
+    <p>In fact, sometimes you might be tempted to put a normal JavaScript
+    object inside an Immutable map. Don't do this. Mixing immutable and mutable
+    state in the same object will reap confusion.</p>\n
+    <p>I see two solutions to this:</p>\n
+    <ol>
+      <li>\n
+        <p><strong>Use a type system like TypeScript or Flow</strong>. This
+        removes the mental burden of remembering where immutable data
+        structures are flowing through the system. Many projects are not
+        willing to take this step though, as it requires quite a different
+        coding style.</p>\n\n\t
+      </li>
+      <li>\n
+        <p><strong>Hide the details about data structures</strong>. If you are
+        using Immutable.js in a specific part of your system, don't make
+        anything outside of it access the data structures directly. A good
+        example is Redux and it's single atom app state. If the app state is an
+        Immutable.js object, don't force React components to use Immutable.js'
+        API directly.</p>\n
+        <p>There are two ways to do this. The first is to use something like
+        <a href=
+        "/&quot;https://github.com/gozala/typed-immutable/&quot;">typed-immutable</a>
+        and actually <em>type</em> your objects. By creating records, you get a
+        thin wrapper around an Immutable.js object that provides a
+        <code>map.property</code> interface by defining getters based on the
+        fields provided by the record type. Everything that just reads from the
+        object can treat it like a normal JavaScript object. You can't mutate
+        it still, but that's something you actually want to enforce.</p>\n
+        <p>The second method is to provide a way to query objects and force
+        anything that wants to read to perform a query. This doesn't work in
+        general, but it works really well in the case of Redux because we have
+        a single app state object, and you want to hide the data layout anyway.
+        Forcing all React components to depend on the data layout means you can
+        never change the actual structure of the app state, which you'll
+        probably want to do over time.</p>\n
+        <p>Queries don't have to be a sophisticated engine for deep object
+        querying, they can just be simple function. I'm not doing this in my
+        blog yet, but imagine if I had a bunch of functions like
+        <code>getPost(state, id)</code> and
+        <code>getEditorSettings(state)</code>. These all take state and return
+        what I am \"querying\" just by using the function. I no longer care
+        about where it lives within the state. The only problem is that I might
+        still return an immutable object, so I might need to coerce that into a
+        JavaScript object first or use a record type as described
+        above.</p>\n\n
+      </li>
+    </ol>
+    <p>To sum it all up: JavaScript interop is a real issue. Never reference
+    JavaScript objects from Immutable ones. Interop issues can be mitigated
+    with record types as provided with <a href=
+    "/&quot;https://github.com/gozala/typed-immutable/&quot;">typed-immutable</a>,
+    which have other interesting benefits like throwing errors when mutating or
+    reading invalid fields. Finally, if you're using Redux, don't force
+    everything to depend on the app state structure, as you'll want to change
+    it later. Abstract the data implementation away, which solves the problem
+    with immutable interop.</p>\n
+    <h2>seamless-immutable</h2>\n
+    <p>There's another way to enforce immutability. The <a href=
+    "/&quot;https://github.com/rtfeldman/seamless-immutable/&quot;">seamless-immutable</a>
+    project is a much lighter-weight solution that uses normal JavaScript
+    objects. It does not implement new data structures, so <em>there is no
+    structural sharing</em>, which means you will copy objects as you update
+    them (however, you only need a shallow copy). You don't get any of the
+    performance or value equality benefits explained above.</p>\n
+    <p>However, in return you get excellent JavaScript interop. All the data
+    structures are quite literally JavaScript data structures. The difference
+    is that that seamless-immutable calls <code>Object.freeze</code> on them,
+    so you cannot mutate them (and strict mode, which is the default with ES6
+    modules, will throw errors on mutation). Additionally, it adds a few
+    methods to each instance to aid in updating the data, like
+    <code>merge</code> which returns a new object with the supplied properties
+    merged in.</p>\n
+    <p>It's missing a few common methods for updating immutable data
+    structures, like Immutable.js' and methods which makes it easy to update a
+    deeply nested object. But these are easily implemented and I plan to
+    contribute these to the project.</p>\n
+    <p>It's impossible to mix immutable and mutable objects. seamless-immutable
+    will deeply convert all objects to be immutable when wrapping an instance
+    with it, and any added values are automatically wrapped. In practice
+    Immutable.js works very similarly, where <code>Immutable.fromJS</code>
+    deeply converts, as well as various methods like <code>obj.merge</code>.
+    But <code>obj.set</code> does not automatically coerce, so you can store
+    any data type you like. This is not possible with seamless-immutable, so
+    you cannot accidentally store a mutable JavaScript object.</p>\n
+    <p>In my opinion, I would expect each library to behave the way they
+    currently do; they have different goals. For example, because
+    seamless-immutable automatically coerces, you cannot store any type that it
+    is not aware of, so it won't play nicely with anything but basic builtin
+    types (in fact, it does not even support <code>Map</code> or
+    <code>Set</code> types right now).</p>\n
+    <p>seamless-immutable is a tiny libary with big wins, but also loses out on
+    some fundamental advantages of immutable data structures like value
+    equality. If JavaScript interop is a huge concern for you, it's a fantastic
+    solution. It's especially helpful if you're migrating existing code, as you
+    can slowly make things immutable without rewriting every piece of code that
+    touches them.</p>\n
+    <h2>The Missing Piece: Serializing with transit-js</h2>\n
+    <p>There's one last piece to consider: serialization. If you're using
+    custom data types, <code>JSON.stringify</code> is no longer an option. But
+    <code>JSON.stringify</code> was never very good anyway, you can't even
+    serialize ES6 <code>Map</code> or <code>Set</code> instances.</p>\n
+    <p><a href=
+    "/&quot;https://github.com/cognitect/transit-js/&quot;">transit-js</a> is a
+    great library written by <a href=
+    "/&quot;https://twitter.com/swannodette/&quot;">David Nolen</a> that
+    defines an extensible data transfer format. By default you cannot throw
+    <code>Map</code> or <code>Set</code> instances into it, but the crucial
+    difference is that you can easily transcribe custom types into something
+    that transit understands. In fact, the <a href=
+    "/&quot;https://github.com/glenjamin/transit-immutable-js/blob/master/index.js/&quot;">
+    full code</a> for serializing and deserializing the entire set of
+    Immutable.js types is less than 150 lines long.</p>\n
+    <p>Transit is also much smarter about how it encodes types. For example, it
+    knows that map keys might be complex types as well, so it's easy to tell
+    how it how to serialize <code>Map</code> types. Using the <a href=
+    "/&quot;https://github.com/glenjamin/transit-immutable-js/&quot;"><code>transit-immutable-js</code></a>
+    library (referenced above) to support Immutable.js, now we can do things
+    like this:</p>\n
+    <pre>
+    <code>let { toJSON, fromJSON } = require('transit-immutable-js'); let map = Immutable.Map(); map = map.set(Immutable.Map({ x: 1, y: 2 }), \"value\"); let newMap = fromJSON(toJSON(map)); newMap.get(Immutable.Map({ x: 1, y: 2 })); </code></pre>\n
+    <p>Value equality combined with transit's easy-breezy map serialization
+    gives us a simple way to use these patterns consistently across any system.
+    In fact, my blog builds the query cache on the server when server-rendering
+    and then sends that cache to the client, so the cache is still fully
+    intact. This use case was actually the main reason I switched to
+    transit.</p>\n
+    <p>It would be easy to serialize ES6 <code>Map</code> types as well, but if
+    you have complex keys I'm not sure how you would use the unserialized
+    instance without value equality. There are still probably uses for
+    serializing them though.</p>\n
+    <p>If you have mixed normal JavaScript objects and Immutable.js objects,
+    serializing with transit will also keep all those types in tact. While I
+    recommend against mixing them, transit will deserialize each object into
+    the appropriate type, whereas using raw JSON means you'd convert everything
+    to an Immutable.js type when deserializing (assuming you do
+    <code>Immutable.fromJS(JSON.parse(str))</code>).</p>\n
+    <p>You can extend transit to serialize anything, like <code>Date</code>
+    instances or any custom types. Check out <a href=
+    "/&quot;https://github.com/cognitect/transit-format/&quot;">transit-format</a>
+    for how it encodes types.</p>\n
+    <p>If you use seamless-immutable, you are already restricting yourself to
+    only use builtin JavaScript (and therefore JSON-compatible) types, so you
+    can just use <code>JSON.stringify</code>. While simpler, you lose out on
+    the extensibility; it's all about tradeoffs.</p>\n
+    <h2>Conclusion</h2>\n
+    <p>Immutability provides a lot of benefits, but whether or not you need to
+    use full-blown persistent data structures provided by Immutable.js depends
+    on the app. I suspect a lot of apps are fine copying objects, as most of
+    them are relatively small.</p>\n
+    <p>You win simplicity at the cost of features though; not only is the API a
+    lot more limited you don't get value equality. Additionally, it may be hard
+    later on to switch to Immutable.js if you find out you need the performance
+    gains of structural sharing.</p>\n
+    <p>Generally I would recommend hiding the data structure details,
+    especially if you use Immutable.js, to the outside world. Try to conform to
+    JavaScript's default protocols for objects and arrays, i.e.
+    <code>obj.property</code> and <code>arr[0]</code>. It should be possible to
+    quickly wrap Immutable objects with these interfaces, but more research is
+    needed.</p>\n
+    <p>This is especially true in Redux, where you <em>will</em> want to change
+    how the app state is structured in the future. You have this problem even
+    if your app state is a normal JavaScript object. Outside users shouldn't
+    break if you move things around in the app state. Provide a way to query
+    the app state structure instead, at least just by abstracting out data
+    accesses with functions. More complex solutions like <a href=
+    "/&quot;https://github.com/facebook/relay/&quot;">Relay</a> and <a href=
+    "/&quot;http://netflix.github.io/falcor//&quot;">Falcor</a> solve this too
+    because a query language is the default way to access data.</p>\n
+    <p>[1] <a href="/&quot;http://swannodette.github.io/mori//&quot;">mori</a>
+    is another persistent data structure implementation (pulled out from
+    ClojureScript), and <a href=
+    "/&quot;https://facebook.github.io/react/docs/update.html/&quot;">React's
+    immutability helpers</a> is another library that simply shallow copies
+    native JavaScript objects</p>\n
+    <p>[2] I made <a href=
+    "/&quot;https://gist.github.com/jlongster/bce43d9be633da55053f/&quot;">a
+    gist</a> of all the existing libraries I know of that help with
+    immutability.</p>\n
+  </div>
